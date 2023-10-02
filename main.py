@@ -34,7 +34,8 @@ def get_info():
         for i in range(10):
             response = requests.get(f'{url}&page={page}', headers=headers())
             soup = BeautifulSoup(response.text, 'lxml')
-            vacancies_list = soup.find_all('div', class_='serp-item')
+            vacancies_list = soup.find_all(
+                'div', class_='vacancy-serp-item__layout')
             for vacancy in vacancies_list:
                 vacancy_name = vacancy.find('a', class_='serp-item__title')
                 company = vacancy.find('div', class_="bloko-text").text
@@ -46,8 +47,8 @@ def get_info():
                 vacancy_link = vacancy_name['href']
                 city = vacancy.find(
                     'div', {'data-qa': "vacancy-serp__vacancy-address"}).text
-                description = vacancy.find(
-                    'div', class_='vacancy-serp-item__info').text
+                description = vacancy.find('div', class_="g-user-content")
+                # description = vacancy.find('div', class_="vacancy-serp-item__info").text
                 if any(keyword.lower() in description.lower()
                        for keyword in keywords):
                     info.append({
@@ -57,6 +58,7 @@ def get_info():
                         'salary': normalize('NFKC', salary),
                         'city': city.split(',')[0]
                     })
+                print(description)
                 time.sleep(0.1)
             bar.next()
         bar.finish()
@@ -64,6 +66,6 @@ def get_info():
 
 if __name__ == '__main__':
     get_info()
-
+    print(f'[INFO] Записано {len(info)} вакансий')
     with open('vacancies.json', 'w', encoding='utf-8') as f:
         json.dump(info, f, ensure_ascii=False, indent=4)
