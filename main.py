@@ -6,11 +6,9 @@ from fake_headers import Headers
 from unicodedata import normalize
 from progress.bar import ChargingBar
 
-
 info = []
 
-url = 'https://spb.hh.ru/search/vacancy?text=python&area=1&area=2'
-keywords = ['Django', 'Flask']
+url = 'https://spb.hh.ru/search/vacancy?text=Django+Flask&salary=&ored_clusters=true&area=2&area=1&page=0'
 
 
 def headers():
@@ -20,17 +18,17 @@ def headers():
 def get_last_page():
     response = requests.get(url, headers=headers())
     soup = BeautifulSoup(response.text, 'lxml')
-    return int(soup.find('div', class_='pager')
-               .find_all('span', class_='pager-item-not-in-short-range')
-               [-1].text)
+    last_page = int(soup.find('div', class_='pager').find_all(
+        'a', class_='bloko-button')[-2].text)
+    return last_page
 
 
 def get_info():
     response = requests.get(url, headers=headers())
     soup = BeautifulSoup(response.text, 'lxml')
-    for page in range(1):
+    for page in range(get_last_page()):
         bar = ChargingBar(
-            f'Processing: page {page+1} of {get_last_page()}', max=10)
+            f'Processing: page {page + 1} of {get_last_page()}', max=10)
         for i in range(10):
             response = requests.get(f'{url}&page={page}', headers=headers())
             soup = BeautifulSoup(response.text, 'lxml')
@@ -47,18 +45,13 @@ def get_info():
                 vacancy_link = vacancy_name['href']
                 city = vacancy.find(
                     'div', {'data-qa': "vacancy-serp__vacancy-address"}).text
-                description = vacancy.find('div', class_="g-user-content")
-                # description = vacancy.find('div', class_="vacancy-serp-item__info").text
-                if any(keyword.lower() in description.lower()
-                       for keyword in keywords):
-                    info.append({
-                        'company': company,
-                        'vacancy_name': vacancy_name.text,
-                        'link': vacancy_link,
-                        'salary': normalize('NFKC', salary),
-                        'city': city.split(',')[0]
-                    })
-                print(description)
+                info.append({
+                    'company': company,
+                    'vacancy_name': vacancy_name.text,
+                    'link': vacancy_link,
+                    'salary': normalize('NFKC', salary),
+                    'city': city.split(',')[0]
+                })
                 time.sleep(0.1)
             bar.next()
         bar.finish()
